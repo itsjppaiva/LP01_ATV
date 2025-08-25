@@ -3,13 +3,20 @@ using namespace std;
 
 int main (){
     
-    int valor, numero;
-    cout << "Entre com um valor: ";
-    cin >> valor;
+    int armazena[5];
+    int i;
+    int soma_array = 0;
 
-    for(numero=1; numero<=valor; numero++){
-        cout << " " << numero;
+    for(i=0; i<5; i++){
+        cout << "Entre com um valor: ";
+        cin >> armazena[i];
     }
+
+    for(i=0; i<5; i++){
+        soma_array = soma_array + armazena[i];
+    }
+
+    cout << "Soma dos valores informados: " << soma_array;
 
     return 0;
 }
