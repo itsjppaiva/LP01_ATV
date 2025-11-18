@@ -37,6 +37,7 @@ private:
     list<string> historicoVendas;           // Histórico de vendas
 
 public:
+    // Adiciona um novo produto ao inventário e atualiza estatísticas
     void adicionarProduto(const Produto& p) {
         produtos.push_back(p);
         categorias.insert(p.getCategoria());
@@ -44,6 +45,7 @@ public:
         valorPorCategoria[p.getCategoria()] += p.getPreco() * p.getEstoque();
     }
 
+    // Procura um produto pelo nome
     Produto* buscarProduto(const string& nome) {
         for (auto& p : produtos) {
             if (p.getNome() == nome) return &p;
@@ -51,6 +53,7 @@ public:
         return nullptr;
     }
 
+    // Lista produtos que pertencem a uma categoria específica
     void listarPorCategoria(const string& cat) const {
         cout << "Produtos da categoria '" << cat << "':\n";
         bool achou = false;
@@ -65,6 +68,7 @@ public:
         if (!achou) cout << "Nenhum produto nesta categoria.\n";
     }
 
+    // Registra uma venda, atualiza estoque e valor da categoria
     bool registrarVenda(const string& nome, int quantidade) {
         Produto* p = buscarProduto(nome);
         if (!p) {
@@ -84,6 +88,7 @@ public:
         return true;
     }
 
+    // Soma o valor total do inventário
     double calcularValorTotal() const {
         double total = 0;
         for (const auto& p : produtos)
@@ -91,6 +96,7 @@ public:
         return total;
     }
 
+    // Mostra o valor total agrupado por categoria
     void listarValorPorCategoria() const {
         cout << "\nValor por categoria:\n";
         for (const auto& par : valorPorCategoria) {
@@ -98,6 +104,7 @@ public:
         }
     }
 
+    // Exibe o histórico de vendas realizadas
     void listarHistoricoVendas() const {
         cout << "\nHistorico de vendas:\n";
         if (historicoVendas.empty()) {
