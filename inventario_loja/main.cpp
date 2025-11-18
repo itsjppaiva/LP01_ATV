@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <set>
 #include <map>
 #include <list>
 #include <algorithm>
@@ -11,122 +12,109 @@ using namespace std;
 
 class Produto {
 private:
-    string nome_;
-    string categoria_;
-    double preco_;
-    int estoque_;
+    string nome;
+    string categoria;
+    double preco;
+    int estoque;
 
 public:
-    // Armazena dados básicos do produto
     Produto(string n, string c, double p, int e)
-        : nome_(std::move(n)), categoria_(std::move(c)), preco_(p), estoque_(e) {}
+        : nome(std::move(n)), categoria(std::move(c)), preco(p), estoque(e) {}
 
-    const string& getNome() const { return nome_; }
-    const string& getCategoria() const { return categoria_; }
-    double getPreco() const { return preco_; }
-    int getEstoque() const { return estoque_; }
-
-    void setEstoque(int novoEstoque) { estoque_ = novoEstoque; }
+    const string& getNome() const { return nome; }
+    const string& getCategoria() const { return categoria; }
+    double getPreco() const { return preco; }
+    int getEstoque() const { return estoque; }
+    void setEstoque(int e) { estoque = e; }
 };
 
 class Inventario {
 private:
-    map<string, Produto> produtos_;        // Produtos indexados pelo nome
-    map<string, double> valorPorCategoria_; // Valor total por categoria
-    list<string> historicoVendas_;          // Registro simples das vendas
+    vector<Produto> produtos;               // Lista de produtos
+    set<string> categorias;                 // Categorias únicas
+    map<string, int> contagemPorCategoria;  // Contagem de produtos por categoria
+    map<string, double> valorPorCategoria;  // Valor total por categoria
+    list<string> historicoVendas;           // Histórico de vendas
 
 public:
-    void adicionarProduto(Produto p) {
-        string nome = p.getNome();
-        string categoria = p.getCategoria();
-
-        if (produtos_.count(nome)) {
-            cerr << "Erro: Produto '" << nome << "' já existe." << endl;
-            return;
-        }
-
-        double valor = p.getPreco() * p.getEstoque();
-        produtos_.emplace(std::move(nome), std::move(p));
-        valorPorCategoria_[categoria] += valor;
+    void adicionarProduto(const Produto& p) {
+        produtos.push_back(p);
+        categorias.insert(p.getCategoria());
+        contagemPorCategoria[p.getCategoria()]++;
+        valorPorCategoria[p.getCategoria()] += p.getPreco() * p.getEstoque();
     }
 
-    const Produto* buscarProduto(const string& nome) const {
-        auto it = produtos_.find(nome);
-        if (it != produtos_.end()) return &(it->second);
+    Produto* buscarProduto(const string& nome) {
+        for (auto& p : produtos) {
+            if (p.getNome() == nome) return &p;
+        }
         return nullptr;
-    }
-
-    bool registrarVenda(const string& nome, int quantidade) {
-        auto it = produtos_.find(nome);
-        if (it == produtos_.end()) {
-            cout << "Produto nao encontrado.\n";
-            return false;
-        }
-
-        Produto& p = it->second;
-
-        if (p.getEstoque() < quantidade) {
-            cout << "Estoque insuficiente. Disponível: " << p.getEstoque() << "\n";
-            return false;
-        }
-
-        p.setEstoque(p.getEstoque() - quantidade);
-        valorPorCategoria_[p.getCategoria()] -= p.getPreco() * quantidade;
-        historicoVendas_.push_back(nome + " x" + to_string(quantidade));
-
-        cout << "Venda registrada! Novo estoque de " << nome << ": " << p.getEstoque() << "\n";
-        return true;
     }
 
     void listarPorCategoria(const string& cat) const {
         cout << "Produtos da categoria '" << cat << "':\n";
-        bool encontrado = false;
-
-        for (const auto& pair : produtos_) {
-            const Produto& p = pair.second;
+        bool achou = false;
+        for (const auto& p : produtos) {
             if (p.getCategoria() == cat) {
-                encontrado = true;
+                achou = true;
                 cout << "- " << p.getNome() << " | Preco: R$ "
                      << fixed << setprecision(2) << p.getPreco()
                      << " | Estoque: " << p.getEstoque() << "\n";
             }
         }
-        if (!encontrado) cout << "(Nenhum produto encontrado nesta categoria.)\n";
+        if (!achou) cout << "Nenhum produto nesta categoria.\n";
+    }
+
+    bool registrarVenda(const string& nome, int quantidade) {
+        Produto* p = buscarProduto(nome);
+        if (!p) {
+            cout << "Produto nao encontrado.\n";
+            return false;
+        }
+        if (p->getEstoque() < quantidade) {
+            cout << "Estoque insuficiente.\n";
+            return false;
+        }
+
+        p->setEstoque(p->getEstoque() - quantidade);
+        valorPorCategoria[p->getCategoria()] -= p->getPreco() * quantidade;
+        historicoVendas.push_back(nome + " x" + to_string(quantidade));
+
+        cout << "Venda registrada! Novo estoque: " << p->getEstoque() << "\n";
+        return true;
     }
 
     double calcularValorTotal() const {
-        return accumulate(
-            produtos_.begin(), produtos_.end(), 0.0,
-            [](double total, const auto& pair) {
-                const Produto& p = pair.second;
-                return total + (p.getPreco() * p.getEstoque());
-            }
-        );
+        double total = 0;
+        for (const auto& p : produtos)
+            total += p.getPreco() * p.getEstoque();
+        return total;
     }
 
     void listarValorPorCategoria() const {
-        cout << "\n## Valor Total do Inventario por Categoria ##\n";
-        for (const auto& pair : valorPorCategoria_) {
-            cout << pair.first << ": R$ " << fixed << setprecision(2) << pair.second << "\n";
+        cout << "\nValor por categoria:\n";
+        for (const auto& par : valorPorCategoria) {
+            cout << par.first << ": R$ " << fixed << setprecision(2) << par.second << "\n";
         }
     }
 
     void listarHistoricoVendas() const {
-        cout << "\n## Historico de Vendas ##\n";
-        if (historicoVendas_.empty()) {
-            cout << "(Nenhuma venda registrada.)\n";
+        cout << "\nHistorico de vendas:\n";
+        if (historicoVendas.empty()) {
+            cout << "Nenhuma venda registrada.\n";
             return;
         }
-        for (const auto& item : historicoVendas_) cout << "- " << item << "\n";
+        for (const auto& item : historicoVendas)
+            cout << "- " << item << "\n";
     }
 };
 
 int main() {
     Inventario inv;
 
-    inv.adicionarProduto(Produto("Notebook", "Eletronicos", 3500.0, 10));
-    inv.adicionarProduto(Produto("Mouse", "Eletronicos", 80.0, 50));
-    inv.adicionarProduto(Produto("Camiseta", "Vestuario", 50.0, 100));
+    inv.adicionarProduto({"Notebook", "Eletronicos", 3500.0, 10});
+    inv.adicionarProduto({"Mouse", "Eletronicos", 80.0, 50});
+    inv.adicionarProduto({"Camiseta", "Vestuario", 50.0, 100});
 
     inv.listarPorCategoria("Eletronicos");
 
@@ -136,9 +124,8 @@ int main() {
 
     cout << "\n--- Resumo ---\n";
     inv.listarValorPorCategoria();
-    cout << "Valor total do inventario: R$ "
-         << fixed << setprecision(2) << inv.calcularValorTotal() << "\n";
+    cout << "Valor total do inventario: R$ " << fixed << setprecision(2)
+         << inv.calcularValorTotal() << "\n";
 
     inv.listarHistoricoVendas();
-    return 0;
 }
